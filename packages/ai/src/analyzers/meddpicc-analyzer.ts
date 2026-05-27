@@ -75,7 +75,7 @@ export class MEDDPICCAnalyzer {
 
   constructor(config: MEDDPICCAnalyzerConfig) {
     this.openai = new OpenAI({ apiKey: config.apiKey });
-    this.model = config.model || 'gpt-4-turbo-preview';
+    this.model = config.model || 'gpt-4o';
   }
 
   /**
