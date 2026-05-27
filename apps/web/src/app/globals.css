@@ -3,20 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 241, 245, 249;
+  --foreground-rgb: 245, 245, 245;
+  --background-start-rgb: 16, 16, 16;
+  --background-end-rgb: 30, 30, 30;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
-      to bottom,
+      180deg,
       transparent,
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
   min-height: 100vh;
+  background-attachment: fixed;
 }
 
 /* Custom scrollbar */
@@ -26,21 +27,21 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #111111;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #3a3a3a;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #c5ff00;
 }
 
 /* Focus styles */
 *:focus-visible {
-  outline: 2px solid rgb(14, 165, 233);
+  outline: 2px solid #c5ff00;
   outline-offset: 2px;
 }
 
@@ -63,15 +64,15 @@ body {
   }
 
   .badge-neutral {
-    @apply bg-gray-100 text-gray-700;
+    @apply bg-white/10 text-gray-200;
   }
 
   .card {
-    @apply bg-white rounded-lg border border-gray-200 shadow-sm;
+    @apply rounded-3xl border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-sm;
   }
 
   .card-header {
-    @apply px-4 py-3 border-b border-gray-200;
+    @apply border-b border-white/10 px-4 py-3;
   }
 
   .card-body {
