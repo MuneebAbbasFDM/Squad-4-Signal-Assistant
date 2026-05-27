@@ -1,0 +1,502 @@
+// Prisma Schema for Signal Assistant
+// Sales Meeting Intelligence & Discovery Assistant
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// User & Team Management
+// ============================================
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  firstName   String
+  lastName    String
+  role        UserRole  @default(ACCOUNT_MANAGER)
+  avatarUrl   String?
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  teamId         String?
+  team           Team?              @relation("TeamMembers", fields: [teamId], references: [id])
+  managedTeam    Team?              @relation("TeamManager")
+  ownedAccounts  Account[]
+  meetingHosts   Meeting[]          @relation("MeetingHost")
+  assignedSteps  NextStep[]
+  stakeholders   Stakeholder[]
+  opportunities  Opportunity[]
+
+  @@index([email])
+  @@index([teamId])
+}
+
+enum UserRole {
+  ADMIN
+  SALES_MANAGER
+  ACCOUNT_MANAGER
+  SALES_OPS
+  VIEWER
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  managerId String  @unique
+  manager   User    @relation("TeamManager", fields: [managerId], references: [id])
+  members   User[]  @relation("TeamMembers")
+}
+
+// ============================================
+// Account & Stakeholder Management
+// ============================================
+
+model Account {
+  id          String   @id @default(cuid())
+  name        String
+  industry    String?
+  website     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ownerId      String
+  owner        User          @relation(fields: [ownerId], references: [id])
+  stakeholders Stakeholder[]
+  opportunities Opportunity[]
+  meetings     Meeting[]
+
+  @@index([ownerId])
+  @@index([name])
+}
+
+model Stakeholder {
+  id             String          @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String?
+  title          String?
+  department     String?
+  role           StakeholderRole @default(UNKNOWN)
+  influenceLevel InfluenceLevel  @default(UNKNOWN)
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  accountId       String
+  account         Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdById     String
+  createdBy       User              @relation(fields: [createdById], references: [id])
+  meetingAttendees MeetingAttendee[]
+  transcriptSegments TranscriptSegment[]
+
+  @@index([accountId])
+  @@index([email])
+}
+
+enum StakeholderRole {
+  ECONOMIC_BUYER
+  TECHNICAL_BUYER
+  CHAMPION
+  INFLUENCER
+  BLOCKER
+  END_USER
+  UNKNOWN
+}
+
+enum InfluenceLevel {
+  HIGH
+  MEDIUM
+  LOW
+  UNKNOWN
+}
+
+// ============================================
+// Opportunity & Pipeline
+// ============================================
+
+model Opportunity {
+  id          String           @id @default(cuid())
+  name        String
+  value       Decimal?         @db.Decimal(12, 2)
+  currency    String?          @default("GBP")
+  stage       OpportunityStage @default(QUALIFICATION)
+  closeDate   DateTime?
+  probability Int?
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  accountId   String
+  account     Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  ownerId     String
+  owner       User              @relation(fields: [ownerId], references: [id])
+  meetings    Meeting[]
+  meddpicc    MEDDPICCData?
+  gaps        DiscoveryGap[]
+  risks       RiskIndicator[]
+
+  @@index([accountId])
+  @@index([ownerId])
+  @@index([stage])
+}
+
+enum OpportunityStage {
+  QUALIFICATION
+  DISCOVERY
+  SOLUTION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+// ============================================
+// Meeting & Transcription
+// ============================================
+
+model Meeting {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  endedAt     DateTime?
+  status      MeetingStatus @default(SCHEDULED)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  accountId     String
+  account       Account           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  opportunityId String?
+  opportunity   Opportunity?      @relation(fields: [opportunityId], references: [id])
+  hostId        String
+  host          User              @relation("MeetingHost", fields: [hostId], references: [id])
+  attendees     MeetingAttendee[]
+  transcript    Transcript?
+  analysis      MeetingAnalysis?
+  nextSteps     NextStep[]
+
+  @@index([accountId])
+  @@index([opportunityId])
+  @@index([hostId])
+  @@index([scheduledAt])
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model MeetingAttendee {
+  id         String       @id @default(cuid())
+  name       String
+  email      String?
+  role       AttendeeRole @default(PARTICIPANT)
+  isInternal Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  // Relations
+  meetingId     String
+  meeting       Meeting      @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  stakeholderId String?
+  stakeholder   Stakeholder? @relation(fields: [stakeholderId], references: [id])
+
+  @@index([meetingId])
+}
+
+enum AttendeeRole {
+  HOST
+  PRESENTER
+  PARTICIPANT
+}
+
+model Transcript {
+  id               String           @id @default(cuid())
+  rawText          String
+  normalizedText   String
+  processingStatus ProcessingStatus @default(PENDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  meetingId String              @unique
+  meeting   Meeting             @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  segments  TranscriptSegment[]
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model TranscriptSegment {
+  id             String   @id @default(cuid())
+  text           String
+  normalizedText String
+  startTime      Int      // milliseconds
+  endTime        Int      // milliseconds
+  confidence     Float
+  createdAt      DateTime @default(now())
+
+  // Relations
+  transcriptId   String
+  transcript     Transcript      @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+  speakerId      String?
+  speaker        Stakeholder?    @relation(fields: [speakerId], references: [id])
+  frameworkTags  FrameworkTag[]
+
+  @@index([transcriptId])
+}
+
+model FrameworkTag {
+  id          String @id @default(cuid())
+  type        String // 'meddpicc' or 'spin'
+  category    String
+  confidence  Float
+  isInferred  Boolean @default(false)
+
+  // Relations
+  segmentId String
+  segment   TranscriptSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([type, category])
+}
+
+// ============================================
+// MEDDPICC Framework
+// ============================================
+
+model MEDDPICCData {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  opportunityId String      @unique
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  elements      MEDDPICCElement[]
+}
+
+model MEDDPICCElement {
+  id          String        @id @default(cuid())
+  category    String        // metrics, economicBuyer, etc.
+  status      ElementStatus @default(NOT_STARTED)
+  confidence  Int           @default(0) // 0-100
+  value       String?
+  notes       String?
+  lastUpdated DateTime?
+
+  // Relations
+  meddpiccId String
+  meddpicc   MEDDPICCData @relation(fields: [meddpiccId], references: [id], onDelete: Cascade)
+  evidence   Evidence[]
+
+  @@unique([meddpiccId, category])
+  @@index([meddpiccId])
+}
+
+enum ElementStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  WEAK
+  INFERRED
+  CONFIRMED
+  AT_RISK
+}
+
+model Evidence {
+  id          String         @id @default(cuid())
+  source      EvidenceSource
+  sourceId    String
+  text        String
+  speakerName String?
+  timestamp   DateTime?
+  confidence  Float
+  createdAt   DateTime       @default(now())
+
+  // Relations
+  elementId String
+  element   MEDDPICCElement @relation(fields: [elementId], references: [id], onDelete: Cascade)
+
+  @@index([elementId])
+}
+
+enum EvidenceSource {
+  MEETING
+  CRM
+  EMAIL
+  MANUAL
+}
+
+// ============================================
+// Meeting Analysis & Insights
+// ============================================
+
+model MeetingAnalysis {
+  id        String   @id @default(cuid())
+  summary   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // MEDDPICC Coverage (0-100)
+  meddpiccOverall        Int @default(0)
+  meddpiccMetrics        Int @default(0)
+  meddpiccEconomicBuyer  Int @default(0)
+  meddpiccDecisionCriteria Int @default(0)
+  meddpiccDecisionProcess Int @default(0)
+  meddpiccPaperProcess   Int @default(0)
+  meddpiccIdentifiedPain Int @default(0)
+  meddpiccChampion       Int @default(0)
+  meddpiccCompetition    Int @default(0)
+
+  // SPIN Coverage (0-100)
+  spinOverall     Int @default(0)
+  spinSituation   Int @default(0)
+  spinProblem     Int @default(0)
+  spinImplication Int @default(0)
+  spinNeedPayoff  Int @default(0)
+
+  // Relations
+  meetingId          String              @unique
+  meeting            Meeting             @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  suggestedQuestions SuggestedQuestion[]
+}
+
+model SuggestedQuestion {
+  id        String @id @default(cuid())
+  framework String // 'meddpicc' or 'spin'
+  category  String
+  question  String
+  priority  Int    @default(0)
+  context   String?
+
+  // Relations
+  analysisId String
+  analysis   MeetingAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+}
+
+// ============================================
+// Gap & Risk Detection
+// ============================================
+
+model DiscoveryGap {
+  id              String      @id @default(cuid())
+  category        GapCategory
+  framework       String      // 'meddpicc', 'spin', or 'general'
+  element         String
+  severity        Severity
+  description     String
+  suggestedAction String
+  detectedAt      DateTime    @default(now())
+  resolvedAt      DateTime?
+
+  // Relations
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@index([severity])
+}
+
+enum GapCategory {
+  MISSING
+  WEAK
+  CONTRADICTORY
+  OUTDATED
+  UNCONFIRMED
+}
+
+model RiskIndicator {
+  id             String    @id @default(cuid())
+  type           RiskType
+  severity       Severity
+  description    String
+  evidence       String?
+  recommendation String
+  detectedAt     DateTime  @default(now())
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+
+  // Relations
+  opportunityId String
+  opportunity   Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@index([severity])
+}
+
+enum RiskType {
+  NO_ECONOMIC_BUYER
+  UNCLEAR_DECISION_CRITERIA
+  NO_QUANTIFIED_METRICS
+  CHAMPION_NOT_CONFIRMED
+  STALLED_PROGRESS
+  COMPETITOR_THREAT
+  BUDGET_UNCERTAINTY
+  TIMELINE_UNCLEAR
+  STAKEHOLDER_BLOCKER
+  MISSING_NEXT_STEPS
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+// ============================================
+// Next Steps & Commitments
+// ============================================
+
+model NextStep {
+  id           String         @id @default(cuid())
+  description  String
+  dueDate      DateTime?
+  status       NextStepStatus @default(PENDING)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relations
+  meetingId  String
+  meeting    Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  assigneeId String?
+  assignee   User?   @relation(fields: [assigneeId], references: [id])
+
+  @@index([meetingId])
+  @@index([assigneeId])
+  @@index([status])
+}
+
+enum NextStepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}

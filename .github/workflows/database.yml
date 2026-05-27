@@ -1,0 +1,37 @@
+name: Database Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/database/prisma/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npm run db:generate --workspace=@signal-assistant/database
+
+      - name: Run Migrations
+        run: npm run db:migrate:prod --workspace=@signal-assistant/database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
