@@ -323,7 +323,7 @@ function buildSPINPlan(records: CRMRecord[]): SPINPlan {
     suggestedQuestions: [
       'What is the business impact of having these roles unfilled for an additional 4–6 weeks?',
       'How does a delayed DevOps hire affect your Q3 delivery commitments?',
-      'If CV quality gaps persist, how does that affect your team\'s confidence in the process?',
+      "If CV quality gaps persist, how does that affect your team's confidence in the process?",
     ],
   };
 
