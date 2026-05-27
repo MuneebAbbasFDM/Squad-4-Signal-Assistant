@@ -122,4 +122,21 @@ export const api = {
         '/api/v1/opportunities/insights/pipeline'
       ),
   },
+  // Chat / Meeting Plan
+  chat: {
+    clients: () =>
+      fetchApi<{ clients: string[]; account: string }>('/api/v1/chat/clients'),
+    plan: (clientName: string) =>
+      fetchApi<import('@signal-assistant/shared').Meeting>(
+        `/api/v1/chat/plan/${encodeURIComponent(clientName)}`
+      ),
+    send: (message: string, clientName?: string) =>
+      fetchApi<{
+        reply: string;
+        availableClients?: string[];
+      }>('/api/v1/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message, clientName }),
+      }),
+  },
 };

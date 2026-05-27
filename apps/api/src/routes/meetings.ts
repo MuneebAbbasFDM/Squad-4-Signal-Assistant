@@ -1,10 +1,48 @@
 import { Router, Request, Response } from 'express';
 import type { ApiResponse, Meeting } from '@signal-assistant/shared';
+import { CRM_RECORDS } from '../data/crm-meetings.js';
+import { generateMeetingPlan } from '../utils/analysis-generator.js';
 
 const router = Router();
 
-// Mock data for initial development
-const mockMeetings: Meeting[] = [];
+// Build mock meetings from CRM Excel data
+const mockMeetings: Meeting[] = CRM_RECORDS.map((record, index) => ({
+  id: String(index + 1),
+  accountId: 'lg-1',
+  title: `${record.meetingType} – ${record.clientName}`,
+  description: record.keyDiscussionPoints,
+  scheduledAt: new Date(record.meetingDate),
+  startedAt: new Date(record.meetingDate),
+  status: 'completed' as const,
+  attendees: [
+    {
+      id: `att-${index + 1}-1`,
+      meetingId: String(index + 1),
+      name: record.clientName,
+      role: 'participant' as const,
+      isInternal: false,
+    },
+    {
+      id: `att-${index + 1}-2`,
+      meetingId: String(index + 1),
+      name: 'FDM Account Manager',
+      role: 'host' as const,
+      isInternal: true,
+    },
+  ],
+  nextSteps: [
+    {
+      id: `ns-${index + 1}`,
+      meetingId: String(index + 1),
+      description: record.nextSteps,
+      status: 'pending' as const,
+      createdAt: new Date(record.meetingDate),
+      updatedAt: new Date(record.meetingDate),
+    },
+  ],
+  createdAt: new Date(record.meetingDate),
+  updatedAt: new Date(record.meetingDate),
+}));
 
 /**
  * @route GET /api/v1/meetings
@@ -98,10 +136,8 @@ router.post('/:id/transcript', (req: Request, res: Response) => {
     return;
   }
 
-  const { transcript } = req.body;
-
-  // TODO: Process and store transcript
-  // TODO: Trigger AI analysis
+  // transcript is received; AI processing deferred (TODO)
+  void req.body.transcript;
 
   const response: ApiResponse<{ message: string; meetingId: string }> = {
     success: true,
@@ -115,12 +151,12 @@ router.post('/:id/transcript', (req: Request, res: Response) => {
 
 /**
  * @route GET /api/v1/meetings/:id/analysis
- * @description Get analysis for a meeting
+ * @description Get MEDDPICC and SPIN analysis for a meeting
  */
 router.get('/:id/analysis', (req: Request, res: Response) => {
-  const meeting = mockMeetings.find((m) => m.id === req.params['id']);
+  const meetingIndex = mockMeetings.findIndex((m) => m.id === req.params['id']);
 
-  if (!meeting) {
+  if (meetingIndex === -1) {
     res.status(404).json({
       success: false,
       error: {
@@ -131,20 +167,24 @@ router.get('/:id/analysis', (req: Request, res: Response) => {
     return;
   }
 
-  if (!meeting.analysis) {
+  const record = CRM_RECORDS[meetingIndex];
+  if (!record) {
     res.status(404).json({
       success: false,
-      error: {
-        code: 'NOT_FOUND',
-        message: 'Analysis not yet available for this meeting',
-      },
+      error: { code: 'NOT_FOUND', message: 'CRM record not found' },
     });
     return;
   }
 
-  const response: ApiResponse<typeof meeting.analysis> = {
+  // Build a plan using only this meeting's records aggregated with same client
+  const clientRecords = CRM_RECORDS.filter(
+    (r) => r.clientName === record.clientName,
+  );
+  const plan = generateMeetingPlan(record.clientName, clientRecords);
+
+  const response: ApiResponse<typeof plan> = {
     success: true,
-    data: meeting.analysis,
+    data: plan,
   };
   res.json(response);
 });

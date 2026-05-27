@@ -3,6 +3,7 @@ import healthRoutes from './health.js';
 import accountRoutes from './accounts.js';
 import meetingRoutes from './meetings.js';
 import opportunityRoutes from './opportunities.js';
+import chatRoutes from './chat.js';
 
 const router = Router();
 
@@ -13,5 +14,6 @@ router.use('/health', healthRoutes);
 router.use('/api/v1/accounts', accountRoutes);
 router.use('/api/v1/meetings', meetingRoutes);
 router.use('/api/v1/opportunities', opportunityRoutes);
+router.use('/api/v1/chat', chatRoutes);
 
 export default router;

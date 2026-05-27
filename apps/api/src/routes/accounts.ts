@@ -1,20 +1,34 @@
 import { Router, Request, Response } from 'express';
 import type { ApiResponse, Account } from '@signal-assistant/shared';
+import { CRM_CLIENTS } from '../data/crm-meetings.js';
 
 const router = Router();
 
-// Mock data for initial development
+// Legal & General account derived from the CRM Excel data
 const mockAccounts: Account[] = [
   {
-    id: '1',
-    name: 'Acme Corporation',
-    industry: 'Technology',
-    website: 'https://acme.example.com',
-    description: 'Enterprise software company',
-    stakeholders: [],
+    id: 'lg-1',
+    name: 'Legal & General',
+    industry: 'Financial Services',
+    website: 'https://www.legalandgeneral.com',
+    description:
+      'Major UK financial services group. Active recruitment engagement across Java, Business Analysis, and DevOps disciplines.',
+    stakeholders: CRM_CLIENTS.map((name, i) => ({
+      id: `lg-stakeholder-${i + 1}`,
+      accountId: 'lg-1',
+      firstName: name.split(' ')[0] ?? name,
+      lastName: name.split(' ').slice(1).join(' ') ?? '',
+      email: `${name.toLowerCase().replace(' ', '.')}@legalandgeneral.com`,
+      title: 'Hiring Manager',
+      department: 'Technology',
+      role: 'champion' as const,
+      influenceLevel: 'medium' as const,
+      createdAt: new Date('2025-06-01'),
+      updatedAt: new Date(),
+    })),
     opportunities: [],
     meetings: [],
-    createdAt: new Date(),
+    createdAt: new Date('2025-06-01'),
     updatedAt: new Date(),
   },
 ];
