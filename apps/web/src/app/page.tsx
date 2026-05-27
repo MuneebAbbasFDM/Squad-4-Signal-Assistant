@@ -65,7 +65,7 @@ export default function Home() {
               <Target className="h-6 w-6" />
             </div>
             <div>
-              <span className="block text-xs font-semibold uppercase tracking-[0.3em] text-primary-500/80">
+              <span className="block text-xs font-semibold uppercase tracking-[0.15em] text-primary-500/80">
                 Revenue intelligence
               </span>
               <span className="text-xl font-semibold text-white">
@@ -173,19 +173,19 @@ export default function Home() {
                     label: 'Evidence confidence',
                     value: '92%',
                     tone: 'bg-primary-500',
-                    width: 'w-[92%]',
+                    width: '92%',
                   },
                   {
                     label: 'Discovery gaps surfaced',
                     value: '4 key risks',
                     tone: 'bg-white',
-                    width: 'w-[58%]',
+                    width: '58%',
                   },
                   {
                     label: 'Champion signal',
                     value: 'Strong momentum',
                     tone: 'bg-primary-500/70',
-                    width: 'w-[82%]',
+                    width: '82%',
                   },
                 ].map((item) => (
                   <div
@@ -200,7 +200,8 @@ export default function Home() {
                     </div>
                     <div className="mt-3 h-2 rounded-full bg-white/10">
                       <div
-                        className={`h-2 rounded-full ${item.tone} ${item.width}`}
+                        className={`h-2 rounded-full ${item.tone}`}
+                        style={{ width: item.width }}
                       />
                     </div>
                   </div>
@@ -238,7 +239,7 @@ export default function Home() {
 
             <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
               {features.map((feature) => (
-                <div key={feature.title} className="card p-6 transition hover:-translate-y-1 hover:border-primary-500/30">
+                <div key={feature.title} className="card p-6 transition motion-safe:hover:-translate-y-1 hover:border-primary-500/30">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-500 text-[#1E1E1E] shadow-[0_0_30px_rgba(197,255,0,0.25)]">
                     <feature.icon className="h-6 w-6" />
                   </div>
